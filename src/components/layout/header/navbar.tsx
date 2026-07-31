@@ -1,4 +1,5 @@
 import { Logo } from "./logo";
+import { DesktopNavigation } from "./desktop-navigation";
 
 export function Navbar() {
   return (
@@ -6,9 +7,7 @@ export function Navbar() {
       <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Logo />
 
-        <div className="hidden lg:block">
-          {/* Desktop Navigation */}
-        </div>
+        <DesktopNavigation />
 
         <div className="flex items-center gap-4">
           {/* Header Actions */}
