@@ -1,0 +1,24 @@
+:root {
+  /* Brand Colors */
+  --color-brand-primary: #6d1f2a;
+  --color-brand-secondary: #c9a34e;
+  --color-brand-accent: #8f2d3b;
+
+  /* Neutral Palette */
+  --color-background: #fcfaf7;
+  --color-surface: #ffffff;
+  --color-muted: #f5f2ec;
+
+  /* Typography */
+  --color-text-primary: #1f2937;
+  --color-text-secondary: #6b7280;
+  --color-text-inverse: #ffffff;
+
+  /* Borders */
+  --color-border: #e5e7eb;
+
+  /* Status */
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+}
