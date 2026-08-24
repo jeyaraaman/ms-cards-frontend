@@ -1,34 +1,26 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronDown } from "lucide-react";
-import { navigation } from "@/constants/navigation";
+import { NavigationItem } from "./navigation-item";
+
+const navigation = [
+  { label: "Home", href: "/" },
+  { label: "Collections", href: "/catalogue" },
+  { label: "Premium Collections", href: "/premium" },
+  { label: "Commercial Printing", href: "/printing" },
+  { label: "Accessories", href: "/accessories" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
+];
 
 export function DesktopNavigation() {
   return (
-    <nav
-      aria-label="Primary Navigation"
-      className="hidden lg:flex items-center gap-8"
-    >
+    <nav className="hidden items-center gap-8 lg:flex">
       {navigation.map((item) => (
-        <div key={item.title}>
-          {item.children ? (
-            <button
-              type="button"
-              className="flex items-center gap-1 text-sm font-medium transition-colors hover:text-primary"
-            >
-              <span>{item.title}</span>
-              <ChevronDown className="h-4 w-4" />
-            </button>
-          ) : (
-            <Link
-              href={item.href!}
-              className="text-sm font-medium transition-colors hover:text-primary"
-            >
-              {item.title}
-            </Link>
-          )}
-        </div>
+        <NavigationItem
+          key={item.label}
+          href={item.href}
+          label={item.label}
+        />
       ))}
     </nav>
   );

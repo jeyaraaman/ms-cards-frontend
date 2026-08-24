@@ -4,11 +4,10 @@ export function Logo() {
   return (
     <Link
       href="/"
-      aria-label="MS Cards Home"
-      className="inline-flex items-center"
+      className="flex items-center gap-2 transition-opacity hover:opacity-80"
     >
-      <span className="text-2xl font-bold tracking-tight text-primary">
-        MS Cards
+      <span className="font-heading text-4xl font-semibold tracking-tight text-primary">
+        Meenakshi Screen
       </span>
     </Link>
   );

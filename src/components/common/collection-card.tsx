@@ -1,48 +1,157 @@
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ImageIcon } from "lucide-react";
 
-import { Card, CardContent } from "@/components/ui/card";
-import type { PremiumCollection } from "@/data/premium-collections";
+interface Collection {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  href: string;
+}
 
 interface CollectionCardProps {
-  collection: PremiumCollection;
+  collection: Collection;
+}
+
+function getImageUrl(image: string): string {
+  if (!image) {
+    return "";
+  }
+
+  const value = image.trim();
+
+  if (!value) {
+    return "";
+  }
+
+  if (
+    value.startsWith("http://") ||
+    value.startsWith("https://")
+  ) {
+    return value;
+  }
+
+  if (value.startsWith("/")) {
+    return value;
+  }
+
+  return `/${value}`;
 }
 
 export function CollectionCard({
   collection,
 }: CollectionCardProps) {
+  const imageUrl = getImageUrl(collection.image);
+
   return (
     <Link
       href={collection.href}
       className="group block h-full"
     >
-      <Card className="overflow-hidden rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          <Image
-            src={collection.image}
-            alt={collection.title}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+      <article
+        className="
+          glass
+          h-full
+          overflow-hidden
+          rounded-2xl
+        "
+      >
+        {/* ================================================== */}
+        {/* IMAGE */}
+        {/* ================================================== */}
+
+        <div
+          className="
+            glass-image
+            relative
+            aspect-[4/3]
+            overflow-hidden
+          "
+        >
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={collection.title}
+              className="
+                h-full
+                w-full
+                object-cover
+              "
+              loading="lazy"
+            />
+          ) : (
+            <div
+              className="
+                flex
+                h-full
+                flex-col
+                items-center
+                justify-center
+                gap-2
+                text-sm
+                text-muted-foreground
+              "
+            >
+              <ImageIcon className="h-8 w-8" />
+
+              <span>
+                No image available
+              </span>
+            </div>
+          )}
         </div>
 
-        <CardContent className="space-y-4 p-6">
-          <h3 className="text-2xl font-semibold">
+        {/* ================================================== */}
+        {/* CONTENT */}
+        {/* ================================================== */}
+
+        <div className="space-y-3 p-6">
+          <h3
+            className="
+              font-heading
+              text-xl
+              text-foreground
+            "
+          >
             {collection.title}
           </h3>
 
-          <p className="text-muted-foreground">
-            {collection.description}
-          </p>
+          {collection.description && (
+            <p
+              className="
+                text-sm
+                leading-6
+                text-muted-foreground
+              "
+            >
+              {collection.description}
+            </p>
+          )}
 
-          <div className="flex items-center gap-2 font-medium text-primary">
-            Explore Collection
+          <div
+            className="
+              flex
+              items-center
+              gap-2
+              text-sm
+              font-medium
+              text-primary
+            "
+          >
+            Explore
 
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            <ArrowRight
+              className="
+                h-4
+                w-4
+                transition-transform
+                duration-300
+                group-hover:translate-x-1
+              "
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </article>
     </Link>
   );
 }
