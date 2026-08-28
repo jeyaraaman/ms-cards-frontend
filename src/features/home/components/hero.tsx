@@ -59,7 +59,10 @@ export function Hero() {
     useState(true);
 
   /* ==========================================================
-     FETCH HERO DATA
+     FETCH HOME HERO DATA
+     
+     Site Settings is the PRIMARY source.
+     Original Hero endpoint is only used for buttons/fallback.
   ========================================================== */
 
   useEffect(() => {
@@ -67,27 +70,6 @@ export function Hero() {
 
     async function fetchHeroData() {
       try {
-        /* ======================================================
-           LOAD HERO
-        ====================================================== */
-
-        const heroResponse =
-          await fetch(
-            `${API_URL}/api/hero/`,
-            {
-              cache: "no-store",
-            },
-          );
-
-        if (!heroResponse.ok) {
-          throw new Error(
-            "Failed to fetch hero",
-          );
-        }
-
-        const heroData: HeroData[] =
-          await heroResponse.json();
-
         /* ======================================================
            LOAD SITE SETTINGS
         ====================================================== */
@@ -113,55 +95,46 @@ export function Hero() {
           return;
         }
 
-        setHero(
-          heroData[0] ?? null,
-        );
+        setSiteSettings(settingsData);
 
-        setSiteSettings(
-          settingsData,
-        );
+        /* ======================================================
+           LOAD ORIGINAL HERO
+           
+           This is optional.
+           It is used only for button configuration
+           if a Hero record exists.
+        ====================================================== */
+
+        try {
+          const heroResponse =
+            await fetch(
+              `${API_URL}/api/hero/`,
+              {
+                cache: "no-store",
+              },
+            );
+
+          if (heroResponse.ok) {
+            const heroData: HeroData[] =
+              await heroResponse.json();
+
+            if (!cancelled) {
+              setHero(
+                heroData[0] ?? null,
+              );
+            }
+          }
+        } catch (heroError) {
+          console.warn(
+            "Hero endpoint unavailable. Using Site Settings only:",
+            heroError,
+          );
+        }
       } catch (error) {
         console.error(
           "Failed to load Home Hero:",
           error,
         );
-
-        /* ====================================================
-           FALLBACK
-
-           If Site Settings fails, still try to
-           load the original Hero data.
-        ==================================================== */
-
-        if (!cancelled) {
-          try {
-            const fallbackResponse =
-              await fetch(
-                `${API_URL}/api/hero/`,
-                {
-                  cache: "no-store",
-                },
-              );
-
-            if (
-              fallbackResponse.ok
-            ) {
-              const fallbackData: HeroData[] =
-                await fallbackResponse.json();
-
-              setHero(
-                fallbackData[0] ?? null,
-              );
-            }
-          } catch (
-            fallbackError
-          ) {
-            console.error(
-              "Failed to load fallback hero:",
-              fallbackError,
-            );
-          }
-        }
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -330,38 +303,71 @@ export function Hero() {
     );
   }
 
-  /* ==========================================================
-     NO HERO
-  ========================================================== */
-
-  if (!hero) {
-    return null;
-  }
-
   /* ============================================================
-     SITE SETTINGS OVERRIDE
-
-     Site Settings values take priority.
-
-     If a Site Settings value is empty,
-     the original Hero value is used.
+     SITE SETTINGS DATA
+     
+     Site Settings is now the PRIMARY HERO SOURCE.
   ============================================================ */
 
   const eyebrow =
     siteSettings?.home_hero_eyebrow?.trim() ||
-    hero.eyebrow;
+    hero?.eyebrow ||
+    "";
 
   const title =
     siteSettings?.home_hero_title?.trim() ||
-    hero.title;
+    hero?.title ||
+    "";
 
   const description =
     siteSettings?.home_hero_description?.trim() ||
-    hero.description;
+    hero?.description ||
+    "";
 
   const image =
     siteSettings?.home_hero_image?.trim() ||
-    hero.image;
+    hero?.image ||
+    "";
+
+  /* ============================================================
+     BUTTONS
+     
+     Site Settings currently does not contain button fields,
+     so use Hero record buttons if available.
+     
+     If no Hero record exists, use sensible defaults.
+  ============================================================ */
+
+  const primaryButtonText =
+    hero?.primary_button_text ||
+    "Explore Collection";
+
+  const primaryButtonLink =
+    hero?.primary_button_link ||
+    "/catalogue";
+
+  const secondaryButtonText =
+    hero?.secondary_button_text ||
+    "Make an Enquiry";
+
+  const secondaryButtonLink =
+    hero?.secondary_button_link ||
+    "/enquiry";
+
+  /* ============================================================
+     NO HERO CONTENT
+     
+     Only return null if Site Settings ALSO has no content.
+  ============================================================ */
+
+  if (
+    !eyebrow &&
+    !title &&
+    !description &&
+    !image
+  ) {
+    return null;
+  }
 
   /* ==========================================================
      RENDER
@@ -447,20 +453,22 @@ export function Hero() {
                 TITLE
             ================================================== */}
 
-            <h1
-              className="
-                mt-5
-                max-w-2xl
-                font-heading
-                text-5xl
-                leading-[1.05]
-                text-foreground
-                sm:text-6xl
-                lg:text-7xl
-              "
-            >
-              {title}
-            </h1>
+            {title && (
+              <h1
+                className="
+                  mt-5
+                  max-w-2xl
+                  font-heading
+                  text-5xl
+                  leading-[1.05]
+                  text-foreground
+                  sm:text-6xl
+                  lg:text-7xl
+                "
+              >
+                {title}
+              </h1>
+            )}
 
             {/* ==================================================
                 DESCRIPTION
@@ -497,62 +505,44 @@ export function Hero() {
                   PRIMARY BUTTON
               ================================================== */}
 
-              {hero.primary_button_text && (
-                <Button
-                  size="lg"
-                  asChild
-                  className="
-                    rounded-xl
-                    transition-all
-                    duration-300
-                    hover:-translate-y-0.5
-                    hover:shadow-lg
-                  "
-                >
-                  <Link
-                    href={
-                      hero.primary_button_link ||
-                      "/catalogue"
-                    }
-                  >
-                    {
-                      hero.primary_button_text
-                    }
-                  </Link>
-                </Button>
-              )}
+              <Button
+                size="lg"
+                asChild
+                className="
+                  rounded-xl
+                  transition-all
+                  duration-300
+                  hover:-translate-y-0.5
+                  hover:shadow-lg
+                "
+              >
+                <Link href={primaryButtonLink}>
+                  {primaryButtonText}
+                </Link>
+              </Button>
 
               {/* ==================================================
                   SECONDARY BUTTON
               ================================================== */}
 
-              {hero.secondary_button_text && (
-                <Button
-                  variant="outline"
-                  size="lg"
-                  asChild
-                  className="
-                    rounded-xl
-                    transition-all
-                    duration-300
-                    hover:-translate-y-0.5
-                    hover:border-primary/40
-                    hover:bg-primary/5
-                    hover:shadow-md
-                  "
-                >
-                  <Link
-                    href={
-                      hero.secondary_button_link ||
-                      "/enquiry"
-                    }
-                  >
-                    {
-                      hero.secondary_button_text
-                    }
-                  </Link>
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="lg"
+                asChild
+                className="
+                  rounded-xl
+                  transition-all
+                  duration-300
+                  hover:-translate-y-0.5
+                  hover:border-primary/40
+                  hover:bg-primary/5
+                  hover:shadow-md
+                "
+              >
+                <Link href={secondaryButtonLink}>
+                  {secondaryButtonText}
+                </Link>
+              </Button>
             </div>
           </div>
 
@@ -610,8 +600,6 @@ export function Hero() {
 
             {/* ==================================================
                 PREMIUM GLASS FRAME
-
-                Same visual language as Premium Hero.
             ================================================== */}
 
             <div
