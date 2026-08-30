@@ -54,7 +54,7 @@ export function ProductCard({
         className="
           relative
           block
-          aspect-[4/3]
+          aspect-[4/5]
           overflow-hidden
           bg-muted
         "

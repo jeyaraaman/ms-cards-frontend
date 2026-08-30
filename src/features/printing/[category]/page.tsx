@@ -279,7 +279,7 @@ export default async function PrintingCategoryPage({
                       <div
                         className="
                           relative
-                          aspect-[4/3]
+                          aspect-[4/5]
                           overflow-hidden
                           bg-muted
                         "

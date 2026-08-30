@@ -392,7 +392,7 @@ export function PremiumCollections() {
 
                   <div
                     className="
-                      aspect-[4/3]
+                      aspect-[4/5]
                       animate-pulse
                       bg-muted
                     "
@@ -530,7 +530,7 @@ export function PremiumCollections() {
                       <div
                         className="
                           relative
-                          aspect-[4/3]
+                          aspect-[4/5]
                           overflow-hidden
                           bg-muted
                         "

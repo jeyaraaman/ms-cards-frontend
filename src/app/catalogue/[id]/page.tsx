@@ -427,7 +427,7 @@ export default async function ProductPage({
           <div
             className="
               relative
-              aspect-[4/3]
+              aspect-[4/5]
               w-full
               overflow-hidden
               rounded-3xl

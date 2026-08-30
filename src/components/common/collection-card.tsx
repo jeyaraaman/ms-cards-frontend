@@ -64,7 +64,7 @@ export function CollectionCard({
           className="
             glass-image
             relative
-            aspect-[4/3]
+            aspect-[4/5]
             overflow-hidden
           "
         >

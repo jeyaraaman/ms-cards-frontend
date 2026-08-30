@@ -315,7 +315,7 @@ function CategoryProducts({
                 <div
                   className="
                     relative
-                    aspect-[4/3]
+                    aspect-[4/5]
                     overflow-hidden
                     bg-muted
                   "
@@ -757,7 +757,7 @@ export function PrintingServices() {
                   >
                     <div
                       className="
-                        aspect-[4/3]
+                        aspect-[4/5]
                         bg-muted
                       "
                     />

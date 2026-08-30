@@ -424,7 +424,7 @@ export default async function AccessoriesCategoryPage({
                           <div
                             className="
                               relative
-                              aspect-[4/3]
+                              aspect-[4/5]
                               overflow-hidden
                               bg-muted
                             "
