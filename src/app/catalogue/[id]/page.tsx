@@ -1,32 +1,82 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageCircle,
+} from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { Container } from "@/components/common/container";
+import { ProductImageGallery } from "@/components/common/product-image-gallery";
+
+/* ============================================================
+   PRODUCT IMAGE
+============================================================ */
+
+interface ProductImage {
+  id: number;
+
+  image: string;
+
+  cloudinary_public_id?: string;
+
+  is_primary: boolean;
+
+  display_order: number;
+
+  created_at?: string;
+
+  updated_at?: string;
+}
+
+/* ============================================================
+   PRODUCT
+============================================================ */
 
 interface Product {
   id: number;
+
   name: string;
+
   slug: string;
 
   category: number;
+
   category_name: string;
+
   category_slug: string;
 
+  collections?: number[];
+
   collection_ids: number[];
+
   collection_slugs: string[];
+
   collection_names: string[];
 
   material: string;
+
   image: string;
+
+  cloudinary_public_id?: string;
+
+  /*
+   * Multiple product images.
+   */
+  images?: ProductImage[];
+
   description: string;
 
   featured: boolean;
+
   active: boolean;
+
   is_deleted?: boolean;
 }
+
+/* ============================================================
+   PAGE PROPS
+============================================================ */
 
 interface ProductPageProps {
   params: Promise<{
@@ -37,6 +87,10 @@ interface ProductPageProps {
     from?: string;
   }>;
 }
+
+/* ============================================================
+   CONFIGURATION
+============================================================ */
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -107,6 +161,43 @@ function getSeoDescription(
 }
 
 /* ============================================================
+   GET ALL PRODUCT IMAGES FOR SEO
+============================================================ */
+
+function getProductImages(
+  product: Product,
+): string[] {
+  const images =
+    product.images
+      ?.filter(
+        (item) =>
+          item.image &&
+          typeof item.image === "string",
+      )
+      .sort(
+        (a, b) =>
+          a.display_order -
+          b.display_order,
+      )
+      .map(
+        (item) => item.image,
+      ) || [];
+
+  /*
+   * Fallback for products created before
+   * the multiple-image system.
+   */
+  if (
+    images.length === 0 &&
+    product.image
+  ) {
+    return [product.image];
+  }
+
+  return images;
+}
+
+/* ============================================================
    DYNAMIC PRODUCT SEO
 ============================================================ */
 
@@ -115,7 +206,8 @@ export async function generateMetadata({
 }: ProductPageProps): Promise<Metadata> {
   const { id } = await params;
 
-  const product = await getProduct(id);
+  const product =
+    await getProduct(id);
 
   /* ==========================================================
      PRODUCT NOT FOUND
@@ -162,6 +254,9 @@ export async function generateMetadata({
     "Meenakshi Screen",
   ].filter(Boolean);
 
+  const productImages =
+    getProductImages(product);
+
   /* ==========================================================
      METADATA
   ========================================================== */
@@ -204,6 +299,10 @@ export async function generateMetadata({
       },
     },
 
+    /* ========================================================
+       OPEN GRAPH
+    ======================================================== */
+
     openGraph: {
       type: "website",
 
@@ -217,22 +316,31 @@ export async function generateMetadata({
 
       description,
 
-      ...(product.image
+      ...(productImages.length > 0
         ? {
-            images: [
-              {
-                url: product.image,
+            images: productImages.map(
+              (image, index) => ({
+                url: image,
 
-                alt: product.name,
+                alt:
+                  index === 0
+                    ? product.name
+                    : `${product.name} - Image ${
+                        index + 1
+                      }`,
 
                 width: 1200,
 
                 height: 900,
-              },
-            ],
+              }),
+            ),
           }
         : {}),
     },
+
+    /* ========================================================
+       TWITTER
+    ======================================================== */
 
     twitter: {
       card: "summary_large_image",
@@ -241,9 +349,11 @@ export async function generateMetadata({
 
       description,
 
-      ...(product.image
+      ...(productImages.length > 0
         ? {
-            images: [product.image],
+            images: [
+              productImages[0],
+            ],
           }
         : {}),
     },
@@ -261,6 +371,7 @@ function getBackDestination(
     case "premium":
       return {
         href: "/premium",
+
         label:
           "Back to Premium Collections",
       };
@@ -268,6 +379,7 @@ function getBackDestination(
     case "printing":
       return {
         href: "/printing",
+
         label:
           "Back to Commercial Printing",
       };
@@ -275,6 +387,7 @@ function getBackDestination(
     case "accessories":
       return {
         href: "/accessories",
+
         label:
           "Back to Accessories",
       };
@@ -283,7 +396,9 @@ function getBackDestination(
     default:
       return {
         href: "/catalogue",
-        label: "Back to Catalogue",
+
+        label:
+          "Back to Catalogue",
       };
   }
 }
@@ -305,14 +420,21 @@ function ProductBreadcrumbJsonLd({
   const breadcrumbItems = [
     {
       "@type": "ListItem",
+
       position: 1,
+
       name: "Home",
+
       item: SITE_URL,
     },
+
     {
       "@type": "ListItem",
+
       position: 2,
+
       name: "Catalogue",
+
       item: `${SITE_URL}/catalogue`,
     },
   ];
@@ -320,8 +442,11 @@ function ProductBreadcrumbJsonLd({
   if (product.category_name) {
     breadcrumbItems.push({
       "@type": "ListItem",
+
       position: 3,
+
       name: product.category_name,
+
       item: `${SITE_URL}/catalogue?category=${encodeURIComponent(
         product.category_slug,
       )}`,
@@ -330,22 +455,30 @@ function ProductBreadcrumbJsonLd({
 
   breadcrumbItems.push({
     "@type": "ListItem",
-    position: breadcrumbItems.length + 1,
+
+    position:
+      breadcrumbItems.length + 1,
+
     name: product.name,
+
     item: productUrl,
   });
 
   const jsonLd = {
     "@context": "https://schema.org",
+
     "@type": "BreadcrumbList",
-    itemListElement: breadcrumbItems,
+
+    itemListElement:
+      breadcrumbItems,
   };
 
   return (
     <script
       type="application/ld+json"
       dangerouslySetInnerHTML={{
-        __html: JSON.stringify(jsonLd),
+        __html:
+          JSON.stringify(jsonLd),
       }}
     />
   );
@@ -359,13 +492,18 @@ export default async function ProductPage({
   params,
   searchParams,
 }: ProductPageProps) {
-  const { id } = await params;
+  const { id } =
+    await params;
 
   const { from } =
     await searchParams;
 
   const product =
     await getProduct(id);
+
+  /* ==========================================================
+     PRODUCT NOT FOUND
+  ========================================================== */
 
   if (!product) {
     notFound();
@@ -376,7 +514,10 @@ export default async function ProductPage({
 
   return (
     <section className="py-16 lg:py-20">
-      <ProductBreadcrumbJsonLd product={product} />
+      <ProductBreadcrumbJsonLd
+        product={product}
+      />
+
       <Container>
         {/* ==================================================
             BACK
@@ -417,55 +558,29 @@ export default async function ProductPage({
         <div
           className="
             grid
-            items-center
-            gap-16
+            items-start
+            gap-12
             lg:grid-cols-2
+            lg:gap-16
           "
         >
-          {/* IMAGE */}
+          {/* =================================================
+              PRODUCT IMAGE GALLERY
+          ================================================= */}
 
-          <div
-            className="
-              relative
-              aspect-[4/5]
-              w-full
-              overflow-hidden
-              rounded-3xl
-              border
-              bg-muted/20
-            "
-          >
-            {product.image ? (
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                sizes="
-                  (max-width: 1024px) 100vw,
-                  50vw
-                "
-                className="object-cover"
-                priority
-              />
-            ) : (
-              <div
-                className="
-                  flex
-                  h-full
-                  items-center
-                  justify-center
-                  text-sm
-                  text-muted-foreground
-                "
-              >
-                No image available
-              </div>
-            )}
-          </div>
+          <ProductImageGallery
+            productName={product.name}
+            primaryImage={product.image}
+            images={product.images || []}
+          />
 
-          {/* DETAILS */}
+          {/* =================================================
+              DETAILS
+          ================================================= */}
 
           <div className="max-w-xl">
+            {/* CATEGORY */}
+
             <p
               className="
                 text-sm
@@ -477,6 +592,8 @@ export default async function ProductPage({
             >
               {product.category_name}
             </p>
+
+            {/* PRODUCT NAME */}
 
             <h1
               className="
@@ -490,6 +607,8 @@ export default async function ProductPage({
             >
               {product.name}
             </h1>
+
+            {/* DESCRIPTION */}
 
             {product.description && (
               <p
@@ -518,7 +637,9 @@ export default async function ProductPage({
                 bg-card
               "
             >
-              {/* MATERIAL */}
+              {/* ==============================================
+                  MATERIAL
+              ============================================== */}
 
               <div
                 className="
@@ -552,7 +673,9 @@ export default async function ProductPage({
                 </span>
               </div>
 
-              {/* CATEGORY */}
+              {/* ==============================================
+                  CATEGORY
+              ============================================== */}
 
               <div
                 className="
@@ -586,7 +709,9 @@ export default async function ProductPage({
                 </span>
               </div>
 
-              {/* COLLECTION */}
+              {/* ==============================================
+                  COLLECTIONS
+              ============================================== */}
 
               {product.collection_names?.length >
                 0 && (
