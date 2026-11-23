@@ -958,6 +958,14 @@ export default function EditCategoryPage() {
       // Sync both their category and their collection to the
       // collection currently selected for this category.
       // Unchecked products are deliberately left unchanged.
+      const currentCategoryId = category?.id;
+
+      if (currentCategoryId === undefined || currentCategoryId === null) {
+        throw new Error(
+          "Category information is unavailable. Please refresh the page and try again.",
+        );
+      }
+
       const targetCollectionId = Number(collection);
 
       const productsToSync = products.filter((product) => {
@@ -973,7 +981,7 @@ export default function EditCategoryPage() {
           Number(assignedCollectionIds[0]) !== targetCollectionId;
 
         const categoryNeedsSync =
-          Number(product.category) !== category.id;
+          Number(product.category) !== currentCategoryId;
 
         return categoryNeedsSync || collectionNeedsSync;
       });
@@ -988,7 +996,7 @@ export default function EditCategoryPage() {
               Accept: "application/json",
             },
             body: JSON.stringify({
-              category: category.id,
+              category: currentCategoryId,
               collections: [targetCollectionId],
             }),
           },
