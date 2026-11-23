@@ -1331,7 +1331,7 @@ export default function NewProductPage() {
                   htmlFor="product-material"
                   className="mb-2 block text-sm font-medium"
                 >
-                  Material
+                  Model
                 </label>
 
                 <input

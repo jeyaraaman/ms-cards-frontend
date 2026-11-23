@@ -659,7 +659,7 @@ export default async function ProductPage({
                     text-muted-foreground
                   "
                 >
-                  Material
+                  Model
                 </span>
 
                 <span

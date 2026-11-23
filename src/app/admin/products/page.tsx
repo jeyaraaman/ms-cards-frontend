@@ -351,7 +351,7 @@ export default function AdminProductsPage() {
                   Collection
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-medium">
-                  Material
+                  Model
                 </th>
                 <th className="px-6 py-4 text-left text-sm font-medium">
                   Featured
@@ -619,7 +619,7 @@ export default function AdminProductsPage() {
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search products by name, slug, category, material or collection..."
+            placeholder="Search products by name, slug, category, model or collection..."
             className="h-12 w-full rounded-xl border bg-background px-4 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
 

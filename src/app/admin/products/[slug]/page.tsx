@@ -2137,7 +2137,7 @@ export default function EditProductPage() {
                     font-medium
                   "
                 >
-                  Material
+                  Model
                 </label>
 
                 <input
