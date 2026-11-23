@@ -69,6 +69,18 @@ interface Category {
   updated_at: string;
 }
 
+interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  category: number;
+  category_name?: string;
+  image?: string;
+  active?: boolean;
+  collections?: number[];
+  collection_ids?: number[];
+}
+
 interface ApiError {
   [key: string]: unknown;
 }
@@ -158,6 +170,18 @@ export default function EditCategoryPage() {
 
   const [loadingCollections, setLoadingCollections] =
     useState(true);
+
+  const [products, setProducts] =
+    useState<Product[]>([]);
+
+  const [loadingProducts, setLoadingProducts] =
+    useState(true);
+
+  const [selectedProductIds, setSelectedProductIds] =
+    useState<number[]>([]);
+
+  const [productSearch, setProductSearch] =
+    useState("");
 
   const [saving, setSaving] =
     useState(false);
@@ -389,6 +413,74 @@ export default function EditCategoryPage() {
       cancelled = true;
     };
   }, [slug]);
+
+  /*
+   * Load products for category assignment.
+   * Product.category is a single foreign key, so selecting a product
+   * here moves it from its previous category when saved.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchProducts() {
+      if (!category?.id) return;
+
+      try {
+        setLoadingProducts(true);
+
+        const response = await adminFetch(
+          `${API_URL}/products/`,
+          {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          },
+        );
+
+        if (response.status === 401) {
+          clearAuthAndLogin();
+          return;
+        }
+
+        const responseText = await response.text();
+        if (!response.ok) {
+          throw new Error(
+            `Failed to load products (${response.status}): ${responseText}`,
+          );
+        }
+
+        const parsed = JSON.parse(responseText) as
+          | Product[]
+          | { results?: Product[] };
+        const productList = Array.isArray(parsed)
+          ? parsed
+          : parsed.results || [];
+
+        if (cancelled) return;
+
+        setProducts(productList);
+        setSelectedProductIds(
+          productList
+            .filter((product) => Number(product.category) === category.id)
+            .map((product) => product.id),
+        );
+      } catch (err) {
+        console.error("Failed to load products:", err);
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load products.",
+          );
+        }
+      } finally {
+        if (!cancelled) setLoadingProducts(false);
+      }
+    }
+
+    fetchProducts();
+    return () => { cancelled = true; };
+  }, [category?.id]);
 
   /*
    * Load collections
@@ -862,10 +954,65 @@ export default function EditCategoryPage() {
         );
       }
 
+      // Checked products are controlled by this category.
+      // Sync both their category and their collection to the
+      // collection currently selected for this category.
+      // Unchecked products are deliberately left unchanged.
+      const targetCollectionId = Number(collection);
+
+      const productsToSync = products.filter((product) => {
+        if (!selectedProductIds.includes(product.id)) {
+          return false;
+        }
+
+        const assignedCollectionIds =
+          product.collection_ids ?? product.collections ?? [];
+
+        const collectionNeedsSync =
+          assignedCollectionIds.length !== 1 ||
+          Number(assignedCollectionIds[0]) !== targetCollectionId;
+
+        const categoryNeedsSync =
+          Number(product.category) !== category.id;
+
+        return categoryNeedsSync || collectionNeedsSync;
+      });
+
+      for (const product of productsToSync) {
+        const productResponse = await adminFetch(
+          `${API_URL}/products/${encodeURIComponent(product.slug)}/`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              category: category.id,
+              collections: [targetCollectionId],
+            }),
+          },
+        );
+
+        if (productResponse.status === 401) {
+          clearAuthAndLogin();
+          return;
+        }
+
+        if (!productResponse.ok) {
+          const productErrorText = await productResponse.text();
+          throw new Error(
+            `Category details were saved, but moving product "${product.name}" failed: ${productErrorText}`,
+          );
+        }
+      }
+
       setCategorySlug(finalSlug);
 
       setSuccess(
-        "Category updated successfully.",
+        productsToSync.length > 0
+          ? `Category updated and ${productsToSync.length} product(s) synchronized to this category and its collection.`
+          : "Category updated successfully.",
       );
 
       setTimeout(() => {
@@ -1387,18 +1534,110 @@ export default function EditCategoryPage() {
 
         {/* Products */}
         <section className="rounded-xl border bg-muted/30 p-6">
-          <h2 className="text-lg font-semibold">
-            Products
-          </h2>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Products</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Select products to include in this category. Selecting a product assigned elsewhere will move it here when you save.
+              </p>
+            </div>
+            <span className="text-sm font-medium text-muted-foreground">
+              {selectedProductIds.length} selected
+            </span>
+          </div>
 
-          <p className="mt-2 text-sm text-muted-foreground">
-            This category currently contains{" "}
-            <span className="font-semibold text-foreground">
-              {category.product_count}
-            </span>{" "}
-            {category.product_count === 1
-              ? "product"
-              : "products"}.
+          <input
+            type="search"
+            value={productSearch}
+            onChange={(event) => setProductSearch(event.target.value)}
+            placeholder="Search products..."
+            disabled={saving || loadingProducts}
+            className="mt-5 w-full rounded-lg border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+
+          {loadingProducts ? (
+            <div className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading products...
+            </div>
+          ) : products.length === 0 ? (
+            <p className="mt-5 text-sm text-muted-foreground">
+              No products were found.
+            </p>
+          ) : (
+            <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto rounded-lg border bg-background p-3">
+              {products
+                .filter((product) =>
+                  product.name.toLowerCase().includes(productSearch.trim().toLowerCase()),
+                )
+                .map((product) => {
+                  const checked = selectedProductIds.includes(product.id);
+                  const belongsHere = Number(product.category) === category.id;
+
+                  return (
+                    <label
+                      key={product.id}
+                      className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-transparent px-3 py-3 transition hover:border-border hover:bg-muted/50"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            setSelectedProductIds((current) =>
+                              event.target.checked
+                                ? [...current, product.id]
+                                : current.filter((id) => id !== product.id),
+                            );
+                          }}
+                          disabled={saving}
+                          className="h-4 w-4 shrink-0 rounded border"
+                        />
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            loading="lazy"
+                            className="h-14 w-14 shrink-0 rounded-lg border border-border bg-muted object-cover"
+                          />
+                        ) : (
+                          <span
+                            aria-label="No product image"
+                            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-[10px] text-muted-foreground"
+                          >
+                            No image
+                          </span>
+                        )}
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">
+                            {product.name}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {belongsHere
+                              ? "Currently in this category"
+                              : `Currently in: ${product.category_name || "another category"}`}
+                          </span>
+                        </span>
+                      </span>
+                      {!belongsHere && checked && (
+                        <span className="shrink-0 rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                          Will move here
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              {products.filter((product) =>
+                product.name.toLowerCase().includes(productSearch.trim().toLowerCase()),
+              ).length === 0 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No products match your search.
+                </p>
+              )}
+            </div>
+          )}
+          <p className="mt-3 text-xs text-muted-foreground">
+            Unchecking a product does not remove it from its current category. It stays there until you select it in another category.
           </p>
         </section>
 
@@ -1416,6 +1655,7 @@ export default function EditCategoryPage() {
             disabled={
               saving ||
               loadingCollections ||
+              loadingProducts ||
               imageUploading
             }
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
